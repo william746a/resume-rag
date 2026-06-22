@@ -1,0 +1,55 @@
+<section class="page">
+  <header class="hero">
+    <h1>Ask about this candidate</h1>
+    <p class="lede">Answers are generated from the embedded resume and streamed token-by-token.</p>
+  </header>
+
+  <div class="chips" aria-label="Suggested questions">
+    @for (q of suggestedQuestions; track q) {
+      <button type="button" class="chip" (click)="send(q)" [disabled]="loading()">{{ q }}</button>
+    }
+  </div>
+
+  <form class="composer" (ngSubmit)="send()">
+    <label class="sr-only" for="question">Your question</label>
+    <textarea
+      id="question"
+      name="question"
+      rows="3"
+      maxlength="500"
+      [(ngModel)]="question"
+      [disabled]="loading()"
+      placeholder="Ask a question about skills, roles, or impact (max 500 characters)…"
+    ></textarea>
+    <div class="composer-actions">
+      <span class="counter">{{ question.length }}/500</span>
+      <button type="submit" class="primary" [disabled]="loading() || question.trim().length === 0">
+        @if (loading()) {
+          <span>Thinking…</span>
+        } @else {
+          <span>Ask</span>
+        }
+      </button>
+    </div>
+  </form>
+
+  @if (error(); as err) {
+    <div class="banner error" role="alert">{{ err }}</div>
+  }
+
+  <section class="answer" aria-live="polite">
+    <h2>Answer</h2>
+    @if (assistantMessage().length === 0 && !loading() && !error()) {
+      <p class="muted">Ask a question to see a grounded answer here.</p>
+    } @else {
+      <markdown class="markdown" [data]="assistantMessage()" />
+    }
+  </section>
+
+  <footer class="footer">
+    <p>
+      Grounded in <code>resume.md</code> · Last updated {{ lastUpdated }} · Optional
+      <a href="/resume.pdf">PDF resume</a> (add <code>public/resume.pdf</code> to ship it)
+    </p>
+  </footer>
+</section>
