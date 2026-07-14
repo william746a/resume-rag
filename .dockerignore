@@ -1,5 +1,25 @@
-*
-!target/*-runner
-!target/*-runner.jar
-!target/lib/*
-!target/quarkus-app/*
+# Ignore version control and IDE metadata
+.git
+.gitignore
+.idea
+.vscode
+*.iml
+
+# Ignore local env/secrets and generated docs
+.env
+.env.example
+*.md
+docs/
+
+# Ignore build outputs (rebuilt inside the multistage image)
+target/
+*.jar
+
+# Ignore frontend build artifacts / dependencies
+src/main/webui/node_modules/
+src/main/webui/dist/
+src/main/webui/.angular/
+
+# Ignore misc caches
+.pytest_cache
+.DS_Store

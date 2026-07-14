@@ -9,6 +9,7 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.function.Supplier;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class ResumeRetrievalAugmentor implements Supplier<RetrievalAugmentor> {
@@ -17,12 +18,15 @@ public class ResumeRetrievalAugmentor implements Supplier<RetrievalAugmentor> {
 
     @Inject
     public ResumeRetrievalAugmentor(
-            EmbeddingStore<TextSegment> embeddingStore, EmbeddingModel embeddingModel) {
+            EmbeddingStore<TextSegment> embeddingStore,
+            EmbeddingModel embeddingModel,
+            @ConfigProperty(name = "resume.rag.max-results") int maxResults,
+            @ConfigProperty(name = "resume.rag.min-score") double minScore) {
         var contentRetriever = EmbeddingStoreContentRetriever.builder()
                 .embeddingStore(embeddingStore)
                 .embeddingModel(embeddingModel)
-                .maxResults(4)
-                .minScore(0.55)
+                .maxResults(maxResults)
+                .minScore(minScore)
                 .build();
         this.augmentor = DefaultRetrievalAugmentor.builder()
                 .contentRetriever(contentRetriever)

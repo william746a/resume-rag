@@ -11,6 +11,16 @@ export OPENROUTER_API_KEY=sk-or-...
 
 Open http://localhost:8080. Dev profile loads `resume.md` plus `context/*.md` from the classpath.
 
+## Local setup
+
+Copy `.env.example` to `.env` and fill in your OpenRouter key:
+
+```bash
+cp .env.example .env
+# edit .env
+source .env && ./mvnw quarkus:dev
+```
+
 ## Configuration
 
 | Variable | Purpose |
@@ -21,6 +31,8 @@ Open http://localhost:8080. Dev profile loads `resume.md` plus `context/*.md` fr
 | `DOCUMENTS_GCS_CONTEXT_PREFIX_ENABLED` | Auto-ingest `.md` under prefix (prod default: true) |
 | `RESUME_PUBLIC_URL` | Public site URL for OpenRouter `HTTP-Referer` |
 | `RESUME_GLOBAL_DAILY_CAP` | Global chat cap across all clients (default 500/day UTC) |
+| `LOG_LEVEL` | Application log level (default `INFO`) |
+| `RESUME_SANITIZER_BLOCKED_PATTERNS` | Comma-separated regex blocklist (sensible default included) |
 
 See [docs/document-corpus-ingestion.md](docs/document-corpus-ingestion.md) for corpus layout and IAM.
 
@@ -32,12 +44,16 @@ Packaged / native runs use `quarkus.profile=prod` by default (set explicitly in 
 - Loads the resume from GCS (`resume.md`) and expands `context/*.md` under the bucket
 - Fails fast at startup if GCS bucket is missing
 
-## Hardening
+## Security & hardening
 
 - Per-IP rate limits: **10 requests/minute**, **100 requests/day** (Bucket4j)
-- Global daily chat cap: **500** by default (`RESUME_GLOBAL_DAILY_CAP`)
+- Global daily chat cap: **500** by default (`RESUME_GLOBAL_DAILY_CAP`); single-instance only (`--max-instances=1`)
 - Question length capped at **500** characters
-- Health endpoints: `/q/health`, `/q/health/live`, `/q/health/ready`
+- Prompt-injection guard via configurable regex blocklist (`QuestionSanitizer`)
+- Safe error responses: generic 500/429 bodies; stack traces never leak to clients
+- Security headers: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, CSP
+- Health endpoints: `/q/health`, `/q/health/live`, `/q/health/ready` (ready becomes UP after corpus ingestion)
+- Metrics endpoint: `/q/metrics` exposes `resume.chat.*` and `resume.rate-limit.global-cap.*`
 
 ## Native image
 
@@ -73,8 +89,9 @@ gcloud builds submit --config=cloudbuild.yaml \
 gcloud run deploy resume-rag \
   --image REGION-docker.pkg.dev/PROJECT/resume/resume-rag:latest \
   --region REGION \
-  --memory 1Gi --cpu 1 \
-  --min-instances 0 --max-instances 3 \
+  --memory 512Mi --cpu 1 \
+  --min-instances 0 --max-instances 1 \
+  --concurrency 100 \
   --allow-unauthenticated \
   --set-secrets OPENROUTER_API_KEY=openrouter-key:latest \
   --set-env-vars DOCUMENTS_GCS_BUCKET=YOUR_BUCKET,RESUME_PUBLIC_URL=https://YOUR_DOMAIN,QUARKUS_PROFILE=prod

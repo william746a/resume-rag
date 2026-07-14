@@ -42,7 +42,7 @@
     @if (assistantMessage().length === 0 && !loading() && !error()) {
       <p class="muted">Ask a question to see a grounded answer here.</p>
     } @else {
-      <markdown class="markdown" [data]="assistantMessage()" />
+      <markdown class="markdown" [data]="assistantMessage()" [disableSanitizer]="false" />
     }
   </section>
 

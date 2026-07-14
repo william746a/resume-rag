@@ -15,6 +15,8 @@ import jakarta.inject.Inject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -31,9 +33,21 @@ public class RagBootstrap {
     @Inject
     DocumentCorpusLoader documentCorpusLoader;
 
+    @ConfigProperty(name = "resume.rag.chunk-size")
+    int chunkSize;
+
+    @ConfigProperty(name = "resume.rag.chunk-overlap")
+    int chunkOverlap;
+
+    private final AtomicBoolean corpusReady = new AtomicBoolean(false);
+
+    public boolean isCorpusReady() {
+        return corpusReady.get();
+    }
+
     void onStart(@Observes StartupEvent event) throws IOException {
         List<LoadedDocument> documents = documentCorpusLoader.load();
-        var splitter = DocumentSplitters.recursive(500, 50);
+        var splitter = DocumentSplitters.recursive(chunkSize, chunkOverlap);
 
         List<TextSegment> allSegments = new ArrayList<>();
         List<String> perDocumentSummary = new ArrayList<>();
@@ -65,5 +79,8 @@ public class RagBootstrap {
                 documents.size(),
                 allSegments.size(),
                 String.join(", ", perDocumentSummary));
+
+        corpusReady.set(true);
+        LOG.info("Corpus ingestion complete; readiness check is UP");
     }
 }

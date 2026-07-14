@@ -9,12 +9,13 @@
 #   gcloud builds submit --config=cloudbuild.yaml \
 #     --substitutions=_REGION=us-central1,_REPO=resume,_SERVICE=resume-rag,_BUCKET=YOUR_GCS_BUCKET,_PUBLIC_URL=https://YOUR_DOMAIN
 #
-# Then deploy (or uncomment the deploy step below):
+# Deploy (single-instance native image; do not raise --max-instances without an external cap store):
 #   gcloud run deploy resume-rag \
 #     --image ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/resume-rag:$SHORT_SHA \
 #     --region ${_REGION} \
-#     --memory 1Gi --cpu 1 \
-#     --min-instances 0 --max-instances 3 \
+#     --memory 512Mi --cpu 1 \
+#     --min-instances 0 --max-instances 1 \
+#     --concurrency 100 \
 #     --allow-unauthenticated \
 #     --set-secrets OPENROUTER_API_KEY=openrouter-key:latest \
 #     --set-env-vars DOCUMENTS_GCS_BUCKET=${_BUCKET},RESUME_PUBLIC_URL=${_PUBLIC_URL},QUARKUS_PROFILE=prod
@@ -25,6 +26,11 @@ substitutions:
   _SERVICE: resume-rag
 
 steps:
+  - name: gcr.io/cloud-builders/mvn
+    args:
+      - -B
+      - test
+
   - name: gcr.io/cloud-builders/docker
     args:
       - build
